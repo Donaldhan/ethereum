@@ -11,7 +11,10 @@ inline uint toLog2(u256 _d)
 {
 	return (uint)log2((double)_d);
 }
-
+/**
+ * @brief 挖得的信息
+ * 
+ */
 struct MineInfo
 {
 	uint requirement;

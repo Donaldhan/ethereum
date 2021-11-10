@@ -237,7 +237,14 @@ inline std::ostream& operator<<(std::ostream& _out, State const& _s)
 			_out << (d.count(i.first) ? "[ !  " : "[ *  ") << (i.second.type() == AddressType::Contract ? "CONTRACT] " : "   NORMAL] ") << i.first << ": " << std::dec << i.second.nonce() << "@" << i.second.balance() << std::endl;
 	return _out;
 }
-
+/**
+ * @brief 
+ * 
+ * @tparam DB 
+ * @param _cache 
+ * @param _db 
+ * @param _state 
+ */
 template <class DB>
 void commit(std::map<Address, AddressState> const& _cache, DB& _db, TrieDB<Address, DB>& _state)
 {

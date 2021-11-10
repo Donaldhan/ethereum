@@ -61,7 +61,10 @@ struct PeerInfo
 	short port;
 	std::chrono::steady_clock::duration lastPing;
 };
-
+/**
+ * @brief peer 会话
+ * 
+ */
 class PeerSession: public std::enable_shared_from_this<PeerSession>
 {
 	friend class PeerServer;

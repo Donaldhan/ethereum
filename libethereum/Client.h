@@ -66,7 +66,9 @@ public:
 
 	void setAddress(Address _us) { m_s.setAddress(_us); }
 	Address address() const { return m_s.address(); }
+	//开始挖矿
 	void startMining();
+	//停止挖矿
 	void stopMining();
 	MineProgress miningProgress() const { return m_mineProgress; }
 

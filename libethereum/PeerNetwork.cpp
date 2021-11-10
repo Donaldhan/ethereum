@@ -687,7 +687,17 @@ struct UPnP
 }
 
 class NoNetworking: public std::exception {};
-
+/**
+ * @brief Construct a new Peer Server:: Peer Server object
+ * 
+ * @param _clientVersion 
+ * @param _ch 
+ * @param _networkId 
+ * @param _port 
+ * @param _m 
+ * @param _publicAddress 
+ * @param _upnp 
+ */
 PeerServer::PeerServer(std::string const& _clientVersion, BlockChain const& _ch, uint _networkId, short _port, NodeMode _m, string const& _publicAddress, bool _upnp):
 	m_clientVersion(_clientVersion),
 	m_mode(_m),
@@ -876,7 +886,13 @@ void PeerServer::connect(bi::tcp::endpoint const& _ep)
 		delete s;
 	});
 }
-
+/**
+ * @brief 
+ * 
+ * @param _bc 
+ * @return true 
+ * @return false 
+ */
 bool PeerServer::process(BlockChain& _bc)
 {
 	bool ret = false;
@@ -902,7 +918,15 @@ bool PeerServer::process(BlockChain& _bc)
 		}
 	return ret;
 }
-
+/**
+ * @brief 
+ * 
+ * @param _bc 
+ * @param _tq 
+ * @param _o 
+ * @return true 
+ * @return false 
+ */
 bool PeerServer::process(BlockChain& _bc, TransactionQueue& _tq, Overlay& _o)
 {
 	bool ret = false;
@@ -930,13 +954,13 @@ bool PeerServer::process(BlockChain& _bc, TransactionQueue& _tq, Overlay& _o)
 	if (m_mode == NodeMode::Full)
 	{
 		for (auto it = m_incomingTransactions.begin(); it != m_incomingTransactions.end(); ++it)
-			if (_tq.import(*it))
+			if (_tq.import(*it))//导入新的交易
 				ret = true;
 			else
 				m_transactionsSent.insert(sha3(*it));	// if we already had the transaction, then don't bother sending it on.
 		m_incomingTransactions.clear();
 
-		// Send any new transactions.
+		// Send any new transactions. 发送任何新的交易
 		if (fullProcess)
 		{
 			for (auto j: m_peers)
@@ -958,13 +982,14 @@ bool PeerServer::process(BlockChain& _bc, TransactionQueue& _tq, Overlay& _o)
 						ts.appendList(n + 1) << Transactions;
 						ts.appendRaw(b).swapOut(b);
 						seal(b);
+						//发送新的交易
 						p->send(&b);
 					}
 					p->m_knownTransactions.clear();
 					p->m_requireTransactions = false;
 				}
 
-			// Send any new blocks.
+			// Send any new blocks. 发送新的区块
 			auto h = _bc.currentHash();
 			if (h != m_latestBlockSent)
 			{
@@ -979,6 +1004,7 @@ bool PeerServer::process(BlockChain& _bc, TransactionQueue& _tq, Overlay& _o)
 					if (auto p = j.lock())
 					{
 						if (!p->m_knownBlocks.count(_bc.currentHash()))
+						    //发送新的区块        
 							p->send(&b);
 						p->m_knownBlocks.clear();
 					}

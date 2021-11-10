@@ -61,7 +61,12 @@ Dagger::Dagger()
 Dagger::~Dagger()
 {
 }
-
+/**
+ * @brief 计算难度值bound
+ * 
+ * @param _difficulty 
+ * @return u256 
+ */
 u256 Dagger::bound(u256 const& _difficulty)
 {
 	return (u256)((bigint(1) << 256) / _difficulty);
@@ -71,7 +76,17 @@ bool Dagger::verify(h256 const& _root, u256 const& _nonce, u256 const& _difficul
 {
 	return eval(_root, _nonce) < bound(_difficulty);
 }
-
+/**
+ * @brief 在给定的时间内，解决难度值，则挖矿成功；
+ * 
+ * @param o_solution 
+ * @param _root 
+ * @param _difficulty 
+ * @param _msTimeout 
+ * @param _continue 
+ * @return true 
+ * @return false 
+ */
 bool Dagger::mine(u256& o_solution, h256 const& _root, u256 const& _difficulty, uint _msTimeout, bool const& _continue)
 {
 	// restart search if root has changed
@@ -85,10 +100,12 @@ bool Dagger::mine(u256& o_solution, h256 const& _root, u256 const& _difficulty, 
 	u256 const b = bound(_difficulty);
 
 	// evaluate until we run out of time
+	//根据nonce， 挖矿的时间_msTimeout， 如果在给定的时间内计算出在难度返回之内的数则挖得矿
 	for (auto startTime = steady_clock::now(); (steady_clock::now() - startTime) < milliseconds(_msTimeout) && _continue; m_nonce += 1)
 	{
 		if (eval(_root, m_nonce) < b)
 		{
+			//解决问题
 			o_solution = m_nonce;
 			return true;
 		}
@@ -144,7 +161,13 @@ h256 Dagger::node(h256 const& _root, h256 const& _xn, uint_fast32_t _L, uint_fas
 	}
 	return get(bsha);
 }
-
+/**
+ * @brief 
+ * 
+ * @param _root 
+ * @param _nonce 
+ * @return h256 
+ */
 h256 Dagger::eval(h256 const& _root, u256 const& _nonce)
 {
 	h256 extranonce = _nonce >> 26;				// with xn = floor(n / 2^26) -> assuming this is with xn = floor(N / 2^26)

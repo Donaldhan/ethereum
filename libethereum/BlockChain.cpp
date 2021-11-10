@@ -112,7 +112,12 @@ bool contains(T const& _t, V const& _v)
 			return true;
 	return false;
 }
-
+/**
+ * @brief 导入区块到世界状态
+ * 
+ * @param _block 
+ * @param _db 
+ */
 void BlockChain::import(bytes const& _block, Overlay const& _db)
 {
 	// VERIFY: populates from the block and checks the block is internally coherent.
@@ -144,19 +149,21 @@ void BlockChain::import(bytes const& _block, Overlay const& _db)
 	bi.verifyParent(biParent);
 
 	// Check transactions are valid and that they result in a state equivalent to our state_root.
+	//检查所有交易有效
 	State s(bi.coinbaseAddress, _db);
 	s.sync(*this, bi.parentHash);
 
 	// Get total difficulty increase and update state, checking it.
+	//获取总难度
 	BlockInfo biGrandParent;
 	if (pd.number)
 		biGrandParent.populate(block(pd.parent));
 	auto tdIncrease = s.playback(&_block, bi, biParent, biGrandParent, true);
 	u256 td = pd.totalDifficulty + tdIncrease;
-
+    //检查链的一致性
 	checkConsistency();
 
-	// All ok - insert into DB
+	// All ok - insert into DB 全部ok，则插入db
 	m_details[newHash] = BlockDetails((uint)pd.number + 1, td, bi.parentHash, {});
 	m_detailsDB->Put(m_writeOptions, ldb::Slice((char const*)&newHash, 32), (ldb::Slice)eth::ref(m_details[newHash].rlp()));
 
@@ -182,7 +189,10 @@ void BlockChain::import(bytes const& _block, Overlay const& _db)
 //		cerr << "*** WARNING: Imported block not newest (otd=" << m_details[m_lastBlockHash].totalDifficulty << ", td=" << td << ")" << endl;
 	}
 }
-
+/**
+ * @brief 检查一致性
+ * 
+ */
 void BlockChain::checkConsistency()
 {
 	m_details.clear();

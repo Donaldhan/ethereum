@@ -86,6 +86,7 @@ public:
 	void import(bytes const& _block, Overlay const& _stateDB);
 
 	/// Get the number of the last block of the longest chain.
+	//获取最长链的块高
 	BlockDetails const& details(h256 _hash) const;
 	BlockDetails const& details() const { return details(currentHash()); }
 
@@ -110,7 +111,7 @@ private:
 	mutable std::map<h256, std::string> m_cache;
 
 	ldb::DB* m_db;
-	ldb::DB* m_detailsDB;
+	ldb::DB* m_detailsDB;//区块详情db
 
 	/// Hash of the last (valid) block on the longest chain.
 	h256 m_lastBlockHash;
