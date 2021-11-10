@@ -161,7 +161,7 @@ int main(int argc, char** argv)
 
 	Client c("Ethereum(++)/v0.1", coinbase, dbPath);
 	if (interactive)
-	{
+	{//交互式命令行
 		cout << "Ethereum (++)" << endl;
 		cout << "  Code by Gav Wood, (c) 2013, 2014." << endl;
 		cout << "  Based on a design by Vitalik Buterin." << endl << endl;
@@ -220,14 +220,18 @@ int main(int argc, char** argv)
 	}
 	else
 	{
+		//启动网络客户单
 		c.startNetwork(listenPort, remoteHost, remotePort, verbosity, mode, peers, publicIP, upnp);
+		//获取当前最长链的块高
 		eth::uint n = c.blockChain().details().number;
 		while (true)
 		{
 			if (c.blockChain().details().number - n >= mining)
+			//达到最大块高，则停止挖矿（~0）
 				c.stopMining();
 			else
 				c.startMining();
+			//睡眠100秒
 			usleep(100000);
 		}
 	}

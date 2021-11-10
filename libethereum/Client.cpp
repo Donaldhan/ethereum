@@ -35,6 +35,7 @@ Client::Client(std::string const& _clientVersion, Address _us, std::string const
 	// Synchronise the state according to the block chain - i.e. replay all transactions in block chain, in order.
 	// In practise this won't need to be done since the State DB will contain the keys for the tries for most recent (and many old) blocks.
 	// TODO: currently it contains keys for *all* blocks. Make it remove old ones.
+	//根据区块链同步状态，比如按顺序重放区块链中的交易
 	m_s.sync(m_bc);
 	m_s.sync(m_tq);
 	m_changed = true;
@@ -105,6 +106,8 @@ void Client::work()
 	// Process network events.
 	// Synchronise block chain with network.
 	// Will broadcast any of our (new) transactions and blocks, and collect & add any of their (new) transactions and blocks.
+	//处理网络事件， 使用网络同步区块链
+	//广播任何新的交易和区块，并收集和添加任何新的区块和交易
 	if (m_net)
 		if (m_net->process(m_bc, m_tq, m_stateDB))
 			m_changed = true;
@@ -116,6 +119,7 @@ void Client::work()
 	//   if there are no checkpoints before our fork) reverting to the genesis block and replaying
 	//   all blocks.
 	 // Resynchronise state with block chain & trans
+	 //
 	if (m_s.sync(m_bc))
 		m_changed = true;
 	if (m_s.sync(m_tq))
@@ -124,8 +128,9 @@ void Client::work()
 	m_lock.unlock();
 	if (m_doMine)
 	{
-		// Mine for a while.
+		// Mine for a while. 挖一会， 提交变更的世界状态；
 		m_s.commitToMine(m_bc);
+		//挖100ms
 		MineInfo mineInfo = m_s.mine(100);
 		m_mineProgress.best = max(m_mineProgress.best, mineInfo.best);
 		m_mineProgress.current = mineInfo.best;
@@ -133,8 +138,9 @@ void Client::work()
 
 		if (mineInfo.completed)
 		{
-			// Import block.
+			// Import block. 挖得区块
 			m_lock.lock();
+			//导入区块数据
 			m_bc.attemptImport(m_s.blockData(), m_stateDB);
 			m_mineProgress.best = 0;
 			m_lock.unlock();
@@ -142,6 +148,7 @@ void Client::work()
 		}
 	}
 	else
+	   //休眠100s
 		usleep(100000);
 }
 

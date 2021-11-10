@@ -173,7 +173,7 @@ bool State::sync(BlockChain const& _bc, h256 _block)
 
 	if (bi == m_currentBlock)
 	{
-		// We mined the last block.
+		// We mined the last block. 当前节点挖得区块
 		// Our state is good - we just need to move on to next.
 		m_previousBlock = m_currentBlock;
 		resetCurrent();
@@ -182,7 +182,7 @@ bool State::sync(BlockChain const& _bc, h256 _block)
 	}
 	else if (bi == m_previousBlock)
 	{
-		// No change since last sync.
+		// No change since last sync. 没有任何变化
 		// Carry on as we were.
 	}
 	else
@@ -190,7 +190,7 @@ bool State::sync(BlockChain const& _bc, h256 _block)
 		// New blocks available, or we've switched to a different branch. All change.
 		// Find most recent state dump and replay what's left.
 		// (Most recent state dump might end up being genesis.)
-
+        //有新区块可用，或者我们切换到另外一个分支  
 		std::vector<h256> chain;
 		while (bi.stateRoot != BlockInfo::genesis().hash && m_db.lookup(bi.stateRoot).empty())	// while we don't have the state root of the latest block...
 		{
@@ -201,7 +201,7 @@ bool State::sync(BlockChain const& _bc, h256 _block)
 		m_previousBlock = bi;
 		resetCurrent();
 
-		// Iterate through in reverse, playing back each of the blocks.
+		// Iterate through in reverse, playing back each of the blocks. 回放区块
 		for (auto it = chain.rbegin(); it != chain.rend(); ++it)
 			playback(_bc.block(*it), true);
 
@@ -234,7 +234,13 @@ void State::resetCurrent()
 	m_currentBlock.parentHash = m_previousBlock.hash;
 	m_state.setRoot(m_currentBlock.stateRoot);
 }
-
+/**
+ * @brief 
+ * 遍历交易队列执行，当前节点未知的交易
+ * @param _tq 
+ * @return true 
+ * @return false 
+ */
 bool State::sync(TransactionQueue& _tq)
 {
 	// TRANSACTIONS
@@ -244,7 +250,7 @@ bool State::sync(TransactionQueue& _tq)
 		if (!m_transactions.count(i.first))
 			// don't have it yet! Execute it now.
 			try
-			{
+			{  
 				execute(i.second);
 				ret = true;
 			}
@@ -288,7 +294,14 @@ u256 State::playback(bytesConstRef _block, BlockInfo const& _bi, BlockInfo const
 	m_previousBlock = _parent;
 	return playback(_block, _grandParent, _fullCommit);
 }
-
+/**
+ * @brief 回访区块
+ * 
+ * @param _block 
+ * @param _grandParent 
+ * @param _fullCommit 
+ * @return u256 
+ */
 u256 State::playback(bytesConstRef _block, BlockInfo const& _grandParent, bool _fullCommit)
 {
 	if (m_currentBlock.parentHash != m_previousBlock.hash)
@@ -347,6 +360,11 @@ u256 State::playback(bytesConstRef _block, BlockInfo const& _grandParent, bool _
 
 // @returns the block that represents the difference between m_previousBlock and m_currentBlock.
 // (i.e. all the transactions we executed).
+/**
+ * @brief 挖矿尝试提交
+ * 
+ * @param _bc 
+ */
 void State::commitToMine(BlockChain const& _bc)
 {
 	if (m_currentBlock.sha3Transactions != h256() || m_currentBlock.sha3Uncles != h256())
@@ -372,7 +390,7 @@ void State::commitToMine(BlockChain const& _bc)
 	}
 	else
 		uncles.appendList(0);
-
+    //奖励挖得叔块的账户地址
 	applyRewards(uncleAddresses);
 
 	RLPStream txs(m_transactions.size());
@@ -386,29 +404,38 @@ void State::commitToMine(BlockChain const& _bc)
 	m_currentBlock.sha3Uncles = sha3(m_currentUncles);
 
 	// Commit any and all changes to the trie that are in the cache, then update the state root accordingly.
+	//提交缓存中mpt树中的任务和变更，并更新状态树根
 	commit();
 	m_currentBlock.stateRoot = m_state.root();
 	m_currentBlock.parentHash = m_previousBlock.hash;
 }
-
+/**
+ * @brief 
+ * 在给定时间内，如果解决难度计算，则挖矿成功，提交世界状态到底层leveldb；
+ * 打包当前交易和叔块数据到区块，计算区块hash值；
+ * 
+ * @param _msTimeout 
+ * @return MineInfo 
+ */
 MineInfo State::mine(uint _msTimeout)
 {
-	// Update timestamp according to clock.
+	// Update timestamp according to clock. 更新区块时间戳
 	m_currentBlock.timestamp = time(0);
 
-	// Update difficulty according to timestamp.
+	// Update difficulty according to timestamp. 当前区块的难度
 	m_currentBlock.difficulty = m_currentBlock.calculateDifficulty(m_previousBlock);
 
 	// TODO: Miner class that keeps dagger between mine calls (or just non-polling mining).
+	//挖矿
 	MineInfo ret = m_dagger.mine(/*out*/m_currentBlock.nonce, m_currentBlock.headerHashWithoutNonce(), m_currentBlock.difficulty, _msTimeout);
-	if (ret.completed)
+	if (ret.completed)//取得挖矿权，挖矿成功
 	{
 		// Got it!
 
-		// Commit to disk.
+		// Commit to disk.提交世界状态到底层leveldb
 		m_db.commit();
 
-		// Compile block:
+		// Compile block: 编译区块
 		RLPStream ret;
 		ret.appendList(3);
 		m_currentBlock.fillStream(ret, true);
@@ -416,6 +443,7 @@ MineInfo State::mine(uint _msTimeout)
 		ret.appendRaw(m_currentUncles);
 		ret.swapOut(m_currentBytes);
 		m_currentBlock.hash = sha3(m_currentBytes);
+		//成功挖得区块
 		cout << "*** SUCCESS: Mined " << m_currentBlock.hash << " (parent: " << m_currentBlock.parentHash << ")" << endl;
 	}
 	else
@@ -521,7 +549,11 @@ void State::execute(bytesConstRef _rlp)
 	// don't forget to allow unsigned transactions in the tx list if they concur with the script execution.
 	m_transactions.insert(make_pair(t.sha3(), t));
 }
-
+/**
+ * @brief 奖励挖得叔块的账户地址
+ * 
+ * @param _uncleAddresses 
+ */
 void State::applyRewards(Addresses const& _uncleAddresses)
 {
 	u256 r = c_blockReward;
@@ -532,7 +564,12 @@ void State::applyRewards(Addresses const& _uncleAddresses)
 	}
 	addBalance(m_currentBlock.coinbaseAddress, r);
 }
-
+/**
+ * @brief 
+ * 
+ * @param _t 
+ * @param _sender 
+ */
 void State::executeBare(Transaction const& _t, Address _sender)
 {
 	// Entry point for a contract-originated transaction.
@@ -551,7 +588,7 @@ void State::executeBare(Transaction const& _t, Address _sender)
 	// Increment associated nonce for sender.
 	noteSending(_sender);
 
-	if (_t.receiveAddress)
+	if (_t.receiveAddress) //有接收地址
 	{
 		subBalance(_sender, _t.value + _t.fee);
 		addBalance(_t.receiveAddress, _t.value);
@@ -565,7 +602,7 @@ void State::executeBare(Transaction const& _t, Address _sender)
 	}
 	else
 	{
-		// Try to make a new contract
+		// Try to make a new contract 部署新合约交易
 		if (_t.fee < _t.data.size() * c_memoryFee + c_newContractFee)
 			throw FeeTooSmall();
 
@@ -596,7 +633,16 @@ inline Address asAddress(u256 _item)
 {
 	return left160(h256(_item));
 }
-
+/**
+ * @brief 执行合约交易
+ * 
+ * @param _myAddress 
+ * @param _txSender 
+ * @param _txValue 
+ * @param _txFee 
+ * @param _txData 
+ * @param _totalFee 
+ */
 void State::execute(Address _myAddress, Address _txSender, u256 _txValue, u256 _txFee, u256s const& _txData, u256* _totalFee)
 {
 	std::vector<u256> stack;
